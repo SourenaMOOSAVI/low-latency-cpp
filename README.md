@@ -1,22 +1,55 @@
-# Low-Latency System Design with Modern C++
+# Low-Latency C++ System
 
-A C++20 project demonstrating low-latency and high-performance system design techniques using a simplified high-frequency trading (HFT) system as a learning example.
+## Purpose
+This project demonstrates low-latency, high-performance system design in C++ for real-time data processing, such as high-frequency trading (HFT). It focuses on:
+- Lock-free data structures
+- NUMA-aware memory management
+- Thread affinity and concurrency
+- Performance benchmarking
 
-## Overview
-This project focuses on modern C++ techniques for low-latency systems, covering:
-- **Concurrency**: Lock-free data structures with compare-and-swap (CAS).
-- **Low-Latency Design**: Cache-aligned structures and NUMA-aware thread scheduling.
-- **Memory Management**: Custom memory pools for fast allocations.
+## Key Components
+- **Market Data Pipeline** (`src/market_data.cpp`, `src/market_data.h`):
+  - Producer/consumer threads for market data
+  - Lock-free queue and memory pool for minimal latency
+  - Thread affinity for NUMA optimization
+  - Condition variables for efficient waiting
+- **Lock-Free Queue** (`src/lock_free_queue.h`):
+  - Single-producer, single-consumer lock-free queue
+  - Batch operations for throughput
+- **Memory Pool** (`src/memory_pool.h`):
+  - NUMA-aware, fast allocation for `MarketData`
+- **Thread Affinity** (`src/thread_affinity.cpp`, `src/thread_affinity.h`):
+  - Pin threads to CPU cores for cache/NUMA locality
+- **Logger** (`src/logger.h`):
+  - Thread-safe singleton logger
+- **Benchmarking** (`src/benchmark.cpp`):
+  - Compares mutex queue vs. lock-free queue, and standard vs. pool allocation
+- **Types** (`src/types.h`):
+  - Shared data structures (e.g., `MarketData`)
 
-The codebase simulates a producer-consumer model processing market data, serving as a practical platform to explore performance optimization.
-
-## Techniques Demonstrated
-- **LockFreeQueue**: Single-producer, single-consumer queue using `std::atomic` (~5.58M items/sec).
-- **MemoryPool**: Custom allocator for `MarketData` objects (~25.04M allocs/sec).
-- **Thread Affinity**: CPU pinning to reduce context switches and NUMA effects.
-- **Cache Optimization**: `MarketData` aligned to 64-byte cache lines.
-- **Adaptive Polling**: Tuned busy-waiting with dynamic sleeps to eliminate excessive logging and improve efficiency.
-- **Thread-Safe Logging**: Singleton logger with mutex for reliable file and console output.
+## Project Structure
+```
+low-latency-cpp/
+├── CMakeLists.txt
+├── README.md
+├── LICENSE
+├── .gitignore
+├── data/
+│   └── mock_market_data.txt
+├── docs/
+│   └── concurrency.md
+├── src/
+│   ├── benchmark.cpp
+│   ├── lock_free_queue.h
+│   ├── logger.h
+│   ├── main.cpp
+│   ├── market_data.cpp
+│   ├── market_data.h
+│   ├── memory_pool.h
+│   ├── thread_affinity.cpp
+│   ├── thread_affinity.h
+└── └── types.h
+```
 
 ## Building
 ```bash
@@ -24,8 +57,7 @@ mkdir build && cd build
 cmake ..
 make
 ```
-
-**Dependencies**:
+**Dependencies:**
 - C++20 compiler (e.g., GCC 13.3)
 - `libnuma-dev` for thread affinity
 
@@ -33,53 +65,42 @@ make
 ```bash
 ./build/hft_system
 ```
-- Processes 30 simulated market data items (10 batches × 3).
-- Outputs logs to `hft_system.log`.
-- Press Enter to stop (~1.2s).
+- Processes simulated market data in batches
+- Logs output to `hft_system.log`
+- Press Enter to stop
 
 ## Benchmarking
 ```bash
 ./build/benchmark
 ```
-- **Results**:
-  - `LockFreeQueue`: ~5.58M items/sec
-  - `MemoryPool`: ~25.04M allocs/sec
-  - `Mutex Queue`: ~2.11M items/sec (baseline)
-  - `Standard Allocation`: ~14.49M allocs/sec (baseline)
+- Compares lock-free queue, memory pool, mutex queue, and standard allocation
 
-## Project Structure
-- `src/main.cpp`: Program entry point.
-- `src/market_data.cpp`: Producer-consumer with optimized polling and logging.
-- `src/types.h`: Cache-aligned `MarketData` structure.
-- `src/memory_pool.h`: Custom memory pool.
-- `src/lock_free_queue.h`: Lock-free queue implementation.
-- `src/thread_affinity.h`, `src/thread_affinity.cpp`: Thread affinity utilities.
-- `src/logger.h`: Thread-safe logging singleton.
-
-## Week 4 Achievements
-- Processed 30 market data items across 10 batches, verified by producer and consumer logs.
-- Implemented thread-safe logging, fixing missing consumer logs.
-- Optimized polling to eliminate excessive `Queue empty, yielding` logs.
-- Achieved high-performance benchmarks, exceeding Phase 1 goals.
-- Added Doxygen comments for maintainability.
-- Prepared GitHub-ready codebase with README and `.gitignore`.
-
-## Known Improvements
-- **Duplicate Logs**: `Stopping consumer thread` and `All threads stopped` appear twice due to redundant `stop()` calls in `main.cpp` and destructor.
-- **Throughput**: Simulation achieves ~13.95 items/sec (with 100ms batch delays) vs. target ~30 items/sec.
-- **Benchmark Variability**: Slight regression in `LockFreeQueue` (~5.58M vs. ~5.98M) and `MemoryPool` (~25.04M vs. ~30.79M), likely due to system load.
-
-## Future Work
-- **Phase 2 (Weeks 5–6)**:
-  - Prevent redundant `stop()` calls with a `stopped` flag in `MarketDataParser`.
-  - Improve throughput to ~30 items/sec using `std::condition_variable` for efficient synchronization.
-  - Implement batch processing in `LockFreeQueue` to reduce overhead.
-  - Use NUMA-aware memory allocators with `libnuma` for better performance.
-  - Run benchmarks in a controlled environment to minimize variability.
-- **Additional Techniques**:
-  - Explore low-latency networking (e.g., UDP with zero-copy).
-  - Implement cache-aware data structures (e.g., slab allocators).
-  - Extend to multi-producer, multi-consumer queues for scalability.
+## Further Improvements
+- **Error Handling & Robustness:**
+  - Use custom exceptions and RAII for resource management
+  - Ensure all resources are released on error
+- **Thread Management:**
+  - Use RAII wrappers (e.g., `std::jthread` in C++20)
+  - Prefer condition variables or atomics over `sleep_for` for synchronization
+- **Lock-Free Queue:**
+  - Review atomic memory ordering
+  - Benchmark against established libraries (e.g., MoodyCamel’s ConcurrentQueue)
+- **Memory Pool:**
+  - Profile NUMA benefits; consider `std::pmr` for flexibility
+- **Logging:**
+  - Consider lock-free or buffered logging for high-frequency events
+  - Allow runtime log level configuration
+- **Benchmarking:**
+  - Add multi-threaded benchmarks
+  - Output results in machine-readable formats (CSV, JSON)
+- **Modern C++:**
+  - Use `constexpr`, `noexcept`, `[[nodiscard]]`, and smart pointers
+  - Use `std::span` for batch operations (C++20)
+- **Documentation & Testing:**
+  - Add unit/integration tests (e.g., Google Test)
+  - Expand API and threading documentation
+- **Build System:**
+  - Add sanitizer options and CI integration
 
 ## License
-MIT
+[MIT License](https://github.com/SourenaMOOSAVI/low-latency-cpp?tab=MIT-1-ov-file#readme)
