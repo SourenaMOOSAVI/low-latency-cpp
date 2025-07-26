@@ -1,4 +1,0 @@
-/home/poeticdevil/bin/hft-system/build/CMakeFiles/hft_system.dir
-/home/poeticdevil/bin/hft-system/build/CMakeFiles/benchmark.dir
-/home/poeticdevil/bin/hft-system/build/CMakeFiles/edit_cache.dir
-/home/poeticdevil/bin/hft-system/build/CMakeFiles/rebuild_cache.dir

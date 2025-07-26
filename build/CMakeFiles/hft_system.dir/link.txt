@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/hft_system.dir/src/main.cpp.o CMakeFiles/hft_system.dir/src/market_data.cpp.o CMakeFiles/hft_system.dir/src/thread_affinity.cpp.o -o hft_system  -lnuma 

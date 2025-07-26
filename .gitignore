@@ -1,0 +1,11 @@
+# Build artifacts
+build/
+*.o
+*.exe
+hft_system
+build/ hft_system.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
