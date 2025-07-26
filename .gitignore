@@ -3,7 +3,7 @@ build/
 *.o
 *.exe
 hft_system
-build/ hft_system.log
+hft_system.log
 
 # IDE files
 .vscode/
