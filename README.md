@@ -48,7 +48,7 @@ low-latency-cpp/
 │   ├── memory_pool.h
 │   ├── thread_affinity.cpp
 │   ├── thread_affinity.h
-└── └── types.h
+└───└── types.h
 ```
 
 ## Building

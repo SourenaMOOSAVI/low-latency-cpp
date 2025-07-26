@@ -1,42 +1,56 @@
 # Concurrency in High-Frequency Trading Systems
 
 ## Overview
-Concurrency is critical in high-frequency trading (HFT) systems to process market data and execute trades with minimal latency. This document explains the concurrency concepts used in Week 1 of the HFT system project.
+Concurrency is critical in high-frequency trading (HFT) systems to process market data and execute trades with minimal latency. This project demonstrates modern C++ concurrency techniques, evolving from simple mutex-based queues to advanced lock-free data structures, NUMA-aware memory management, and thread affinity.
 
-## Threads
+## Threads and Task Partitioning
 Threads (`std::thread`) enable concurrent execution of tasks. In this project:
-- A **reader thread** reads mock market data from a file and pushes it to a shared queue.
-- A **processor thread** consumes data from the queue and processes it (e.g., prints it).
+- A **producer thread** generates or reads market data and pushes it to a shared queue.
+- A **consumer thread** processes data from the queue (e.g., parsing, logging, or acting on market data).
 - Threads are managed by the `MarketDataParser` class, which starts and stops them cleanly.
 
 **Code Example**:
 ```cpp
-readerThread = std::thread(&MarketDataParser::readData, this);
-processorThread = std::thread(&MarketDataParser::processData, this);
+producerThread = std::thread(&MarketDataParser::generateData, this);
+consumerThread = std::thread(&MarketDataParser::processData, this);
 ```
 
-## Mutexes
-A mutex (`std::mutex`) ensures exclusive access to shared resources, preventing data corruption. We use a mutex to protect the shared `std::queue<MarketData>`:
-- The reader thread locks the mutex when pushing data to the queue.
-- The processor thread locks the mutex when popping data.
-- `std::lock_guard` is used for RAII-style locking, ensuring the mutex is released even if an exception occurs.
+## Lock-Free Queues
+To minimize latency and contention, the project uses a single-producer, single-consumer **lock-free queue** (`LockFreeQueue`). This eliminates the need for mutexes, allowing threads to communicate efficiently using atomic operations.
 
-**Code Example**:
-```cpp
-{
-    std::lock_guard<std::mutex> lock(queueMutex);
-    dataQueue.push(data);
-}
-```
+- The producer thread pushes data to the lock-free queue.
+- The consumer thread pops data from the queue.
+- The queue is designed for high throughput and minimal synchronization overhead.
 
-## Race Conditions
-A race condition occurs when multiple threads access shared data concurrently without proper synchronization, leading to unpredictable behavior. For example:
-- Without a mutex, the reader could push data while the processor pops, corrupting the queue.
-- The mutex ensures only one thread accesses the queue at a time, eliminating race conditions.
+**Design Note:** Earlier versions used a mutex-protected `std::queue`, but this was replaced for better scalability.
+
+## Memory Pools and NUMA Awareness
+Memory allocation can be a bottleneck in low-latency systems. This project uses a **NUMA-aware memory pool** (`MemoryPool`) for fast, cache-friendly allocation of `MarketData` objects.
+
+- Reduces allocation overhead and improves cache locality.
+- Optimized for multi-core, multi-socket systems.
+
+## Thread Affinity
+To further reduce latency, threads are pinned to specific CPU cores using **thread affinity** utilities. This ensures:
+- Better cache and NUMA locality.
+- Reduced context switching and memory access latency.
+
+## Race Conditions and Synchronization
+A race condition occurs when multiple threads access shared data concurrently without proper synchronization, leading to unpredictable behavior. The lock-free queue uses atomic operations to prevent race conditions without the overhead of mutexes.
+
+## Benchmarking and Performance
+The project includes a benchmarking suite to compare:
+- Mutex-based queue vs. lock-free queue.
+- Standard allocation vs. memory pool allocation.
+
+This helps quantify the performance benefits of advanced concurrency techniques.
 
 ## Design Considerations
-- **Scalability**: The mutex-based queue is simple but may become a bottleneck under high contention. Future weeks will explore lock-free alternatives.
-- **Maintainability**: The `MarketDataParser` class encapsulates thread management, making the code modular and easier to extend.
+- **Scalability:** Lock-free and NUMA-aware designs scale better under high contention.
+- **Maintainability:** The `MarketDataParser` class encapsulates thread and resource management, making the code modular and extensible.
+- **Modern C++:** The codebase uses C++20 features, RAII, and smart pointers for safety and clarity.
 
 ## Next Steps
-In Week 2, we'll replace the mutex-based queue with a lock-free queue using `std::atomic` to improve performance and explore condition variables for more efficient synchronization.
+- Explore multi-producer/multi-consumer lock-free queues.
+- Add more advanced synchronization primitives (e.g., condition variables).
+- Expand benchmarking and profiling for real-world scenarios.
