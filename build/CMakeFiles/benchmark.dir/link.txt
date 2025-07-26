@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/benchmark.dir/src/benchmark.cpp.o CMakeFiles/benchmark.dir/src/thread_affinity.cpp.o -o benchmark  -lnuma 
